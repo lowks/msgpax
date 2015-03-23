@@ -27,6 +27,10 @@ defprotocol Msgpax.Packer do
         raise Msgpax.PackError, reason
     end
   end
+
+  Kernel.def ext(data, type) do
+    Msgpax.Packer.Ext.transform(type, data)
+  end
 end
 
 defimpl Msgpax.Packer, for: Atom do
@@ -156,5 +160,39 @@ defimpl Msgpax.Packer, for: Msgpax.Binary do
 
       true -> throw {:too_big, bin}
     end
+  end
+end
+
+defmodule Msgpax.Packer.Ext do
+  def transform(type, data)
+      when type in 0..127 and is_binary(data) do
+    [format(data), type, data]
+  end
+
+  def transform(type, _data),
+    do: throw({:badarg, type: type})
+
+  def format(data) do
+    size = byte_size(data)
+    cond do
+      size == 1          -> <<0xD4>>
+      size == 2          -> <<0xD5>>
+      size == 4          -> <<0xD6>>
+      size == 8          -> <<0xD7>>
+      size == 16         -> <<0xD8>>
+      size < 256         -> <<0xC7, size>>
+      size < 0x10000     -> <<0xC8, size::16>>
+      size < 0x100000000 -> <<0xC9, size::32>>
+
+      true -> throw {:too_big, data}
+    end
+  end
+end
+
+
+defimpl Msgpax.Packer, for: Reference do
+  def transform(ref) do
+    :erlang.term_to_binary(ref)
+    |> @protocol.ext(0)
   end
 end
