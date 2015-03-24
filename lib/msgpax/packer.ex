@@ -188,11 +188,3 @@ defmodule Msgpax.Packer.Ext do
     end
   end
 end
-
-
-defimpl Msgpax.Packer, for: Reference do
-  def transform(ref) do
-    :erlang.term_to_binary(ref)
-    |> @protocol.ext(0)
-  end
-end
