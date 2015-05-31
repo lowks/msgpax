@@ -166,7 +166,7 @@ end
 defimpl Msgpax.Packer, for: Msgpax.Ext do
   def transform(%{type: type, data: data})
       when type in 0..127 and is_binary(data) do
-    [format(data), type, data]
+    [format(data), type | data]
   end
 
   def format(data) do

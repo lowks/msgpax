@@ -32,10 +32,6 @@ defmodule Msgpax.UnpackError do
   def exception(:incomplete) do
     %__MODULE__{message: "packet is incomplete"}
   end
-
-  def exception({:undef_ext, type}) do
-    %__MODULE__{message: "undefined extension type: #{type}"}
-  end
 end
 
 defmodule Msgpax.Unpacker do
@@ -151,7 +147,9 @@ defmodule Msgpax.Unpacker do
   end
 
   defp ext(type, data, %{ext: ext}) when is_atom(ext) do
-    ext.unpack(type, data)
+    case ext.unpack(type, data) do
+      {:ok, val} -> val
+    end
   end
 
   defp ext(type, data, _opts) do
