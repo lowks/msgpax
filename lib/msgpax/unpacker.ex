@@ -146,24 +146,15 @@ defmodule Msgpax.Unpacker do
     map(rest, opts, len - 1, [{key, val} | acc])
   end
 
-  defp ext(rest, %{ext: ext}, type, data) do
-    cond do
-      is_atom(ext) ->
-        {ext.unpack(type, data), rest}
-
-      is_map(ext) ->
-        case Map.fetch(exts, type) do
-          {:ok, ext} ->
-            {ext.unpack(data), rest}
-
-          :error -> throw {:undef_ext, type}
-        end
-
-      true -> throw {:undef_ext, type}
-    end
+  defp ext(rest, opts, type, data) when type in 0..127 do
+    {ext(type, data, opts), rest}
   end
 
-  defp ext(_rest, _opts, type, _data) do
-    throw {:undef_ext, type}
+  defp ext(type, data, %{ext: ext}) when is_atom(ext) do
+    ext.unpack(type, data)
+  end
+
+  defp ext(type, data, _opts) do
+    %Msgpax.Ext{type: type, data: data}
   end
 end

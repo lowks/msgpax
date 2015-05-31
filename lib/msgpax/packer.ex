@@ -163,14 +163,11 @@ defimpl Msgpax.Packer, for: Msgpax.Binary do
   end
 end
 
-defmodule Msgpax.Packer.Ext do
-  def transform(type, data)
+defimpl Msgpax.Packer, for: Msgpax.Ext do
+  def transform(%{type: type, data: data})
       when type in 0..127 and is_binary(data) do
     [format(data), type, data]
   end
-
-  def transform(type, _data),
-    do: throw({:badarg, type: type})
 
   def format(data) do
     size = byte_size(data)
