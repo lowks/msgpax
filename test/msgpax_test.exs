@@ -53,6 +53,11 @@ defmodule MsgpaxTest do
     defstruct [:name]
   end
 
+  defmodule Role do
+    @derive [{Msgpax.Packer, :verbatim}]
+    defstruct [:id]
+  end
+
   test "fixstring" do
     assert_format string(0), [160]
     assert_format string(31), [191]
@@ -214,6 +219,7 @@ defmodule MsgpaxTest do
 
   test "deriving" do
     assert Msgpax.pack!(%User{name: "Lex"}) == Msgpax.pack!(%{name: "Lex"})
+    assert Msgpax.pack!(%Role{}) == Msgpax.pack!(%{id: nil, __struct__: Atom.to_string(Role)})
 
     assert_raise Protocol.UndefinedError, fn ->
       Msgpax.pack!(%URI{})

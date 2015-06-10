@@ -59,15 +59,9 @@ defimpl Msgpax.Packer, for: BitString do
 end
 
 defimpl Msgpax.Packer, for: Map do
-  defmacro __deriving__(module, _, _opts) do
-    quote do
-      defimpl unquote(@protocol), for: unquote(module) do
-        def transform(struct) do
-          Map.from_struct(struct)
-          |> @protocol.Map.transform
-        end
-      end
-    end
+  # TODO: Remove this once we support only Elixir >= v1.1
+  defmacro __deriving__(module, _struct, opts) do
+    @protocol.Any.__deriving__(module, opts)
   end
 
   def transform(map) do
@@ -156,5 +150,41 @@ defimpl Msgpax.Packer, for: Msgpax.Binary do
 
       true -> throw {:too_big, bin}
     end
+  end
+end
+
+defimpl Msgpax.Packer, for: Any do
+  defmacro __deriving__(module, _struct, opts) do
+    __deriving__(module, opts)
+  end
+
+  def __deriving__(module, opts) do
+    quote do
+      defimpl unquote(@protocol),
+        for: unquote(module), do: unquote(derive(opts))
+    end
+  end
+
+  defp derive(:verbatim) do
+    quote do
+      def transform(struct) do
+        Map.to_list(struct)
+        |> @protocol.Map.transform()
+      end
+    end
+  end
+
+  defp derive(_opts) do
+    quote do
+      def transform(struct) do
+        Map.from_struct(struct)
+        |> @protocol.Map.transform()
+      end
+    end
+  end
+
+  def transform(term) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol, value: term
   end
 end
