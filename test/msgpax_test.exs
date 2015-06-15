@@ -219,4 +219,9 @@ defmodule MsgpaxTest do
       Msgpax.pack!(%URI{})
     end
   end
+
+  test "unpack struct" do
+    packed = Msgpax.pack!(%{"__struct__" => "Elixir.URI"})
+    assert Msgpax.unpack!(packed, %{struct: true}) == %URI{}
+  end
 end

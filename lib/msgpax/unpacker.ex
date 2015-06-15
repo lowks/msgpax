@@ -121,13 +121,33 @@ defmodule Msgpax.Unpacker do
   end
 
   defp map(rest, opts, len, acc \\ [])
-  defp map(rest, _opts, 0, acc),
-    do: {Enum.into(Enum.reverse(acc), %{}), rest}
+  defp map(rest, opts, 0, acc) do
+    value =
+      Enum.reverse(acc)
+      |> Enum.into(%{})
+      |> unpack_struct(opts)
+    {value, rest}
+  end
 
   defp map(rest, opts, len, acc) do
     {key, rest} = transform(rest, opts)
     {val, rest} = transform(rest, opts)
-
     map(rest, opts, len - 1, [{key, val} | acc])
   end
+
+  defp unpack_struct(%{"__struct__" => "Elixir." <> _ = mod} = map, %{struct: true}) do
+    mod = String.to_existing_atom(mod)
+    Map.delete(map, "__struct__")
+    |> Enumerable.Map.reduce({:cont, mod.__struct__}, fn {key, val}, struct ->
+      key = String.to_existing_atom(key)
+      if Map.has_key?(struct, key) do
+        {:cont, Map.put(struct, key, val)}
+      else
+        {:halt, :error}
+      end
+    end)
+    |> elem(1)
+  end
+
+  defp unpack_struct(map, _opts), do: map
 end
