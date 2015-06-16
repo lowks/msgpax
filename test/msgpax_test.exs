@@ -226,5 +226,9 @@ defmodule MsgpaxTest do
 
     assert Msgpax.unpack!(packed) == blueprint
     assert Msgpax.unpack!(packed, %{struct: true}) == %URI{}
+
+    # assert Map.put(blueprint, "other", true)
+    #   |> Msgpax.pack!()
+    #   |> Msgpax.unpack(%{struct: true}) == %{}
   end
 end

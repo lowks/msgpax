@@ -32,6 +32,10 @@ defmodule Msgpax.UnpackError do
   def exception(:incomplete) do
     %__MODULE__{message: "packet is incomplete"}
   end
+
+  def exception({:badkey, key, mod}) do
+    %__MODULE__{message: "unknown key #{inspect(key)} for #{inspect(mod)} struct"}
+  end
 end
 
 defmodule Msgpax.Unpacker do
@@ -125,7 +129,7 @@ defmodule Msgpax.Unpacker do
     value =
       Enum.reverse(acc)
       |> Enum.into(%{})
-      |> unpack_struct(opts)
+      |> build_struct(opts)
     {value, rest}
   end
 
@@ -135,18 +139,18 @@ defmodule Msgpax.Unpacker do
     map(rest, opts, len - 1, [{key, val} | acc])
   end
 
-  defp unpack_struct(%{"__struct__" => "Elixir." <> _} = map, %{struct: true}) do
+  defp build_struct(%{"__struct__" => "Elixir." <> _} = map, %{struct: true}) do
     {mod, map} = Map.pop(map, "__struct__")
     mod = String.to_existing_atom(mod)
-    Enumerable.Map.reduce(map, {:cont, mod.__struct__}, fn {key, val}, struct ->
+    Enum.reduce(map, mod.__struct__, fn {key, val}, struct ->
       key = String.to_existing_atom(key)
       if Map.has_key?(struct, key) do
-        {:cont, Map.put(struct, key, val)}
+        Map.put(struct, key, val)
       else
-        {:halt, :error}
+        throw {:badkey, key, mod}
       end
-    end) |> elem(1)
+    end)
   end
 
-  defp unpack_struct(map, _opts), do: map
+  defp build_struct(map, _opts), do: map
 end
