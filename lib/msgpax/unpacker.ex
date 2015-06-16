@@ -135,18 +135,17 @@ defmodule Msgpax.Unpacker do
     map(rest, opts, len - 1, [{key, val} | acc])
   end
 
-  defp unpack_struct(%{"__struct__" => "Elixir." <> _ = mod} = map, %{struct: true}) do
+  defp unpack_struct(%{"__struct__" => "Elixir." <> _} = map, %{struct: true}) do
+    {mod, map} = Map.pop(map, "__struct__")
     mod = String.to_existing_atom(mod)
-    Map.delete(map, "__struct__")
-    |> Enumerable.Map.reduce({:cont, mod.__struct__}, fn {key, val}, struct ->
+    Enumerable.Map.reduce(map, {:cont, mod.__struct__}, fn {key, val}, struct ->
       key = String.to_existing_atom(key)
       if Map.has_key?(struct, key) do
         {:cont, Map.put(struct, key, val)}
       else
         {:halt, :error}
       end
-    end)
-    |> elem(1)
+    end) |> elem(1)
   end
 
   defp unpack_struct(map, _opts), do: map
